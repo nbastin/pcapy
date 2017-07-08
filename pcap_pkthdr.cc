@@ -127,14 +127,19 @@ PyTypeObject Pkthdr_type = {
 PyObject*
 new_pcap_pkthdr(const struct pcap_pkthdr* hdr)
 {
+#ifndef FAST_NOCHECK
   if (PyType_Ready(&Pkthdr_type) < 0)
     return NULL;
+#endif
 
   pkthdr *pp;
 
   pp = PyObject_New(pkthdr, &Pkthdr_type);
+
+#ifndef FAST_NOCHECK
   if (pp == NULL)
     return NULL;
+#endif
 
   pp->ts = hdr->ts;
   pp->caplen = hdr->caplen;

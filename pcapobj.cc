@@ -327,7 +327,9 @@ PythonCallBack(u_char *user,
   len    = (unsigned int *)&header->caplen;
   pctx = (PcapCallbackContext *)user;
 
+#ifndef SINGLE_THREAD
   PyEval_RestoreThread(pctx->thread_state);
+#endif
 
   PyObject *hdr = new_pcap_pkthdr(header);
 
@@ -349,7 +351,9 @@ PythonCallBack(u_char *user,
   if (!result)
     pcap_breakloop(pctx->ppcap_t);
 
+#ifndef SINGLE_THREAD
   PyEval_SaveThread();
+#endif
 }
 
 static PyObject*
@@ -358,19 +362,29 @@ p_dispatch(register pcapobject* pp, PyObject* args)
   int cant, ret;
   PyObject *PyFunc;
 
+#ifndef FAST_NOCHECK
   if (Py_TYPE(pp) != &Pcaptype)
     {
       PyErr_SetString(PcapError, "Not a pcap object");
       return NULL;
     }
+#endif
 
   if(!PyArg_ParseTuple(args,"iO:dispatch",&cant,&PyFunc))
     return NULL;
 
+#ifndef SINGLE_THREAD
   PcapCallbackContext ctx(pp->pcap, PyFunc, PyThreadState_Get());
   PyEval_SaveThread();
+#else
+  PcapCallbackContext ctx(pp->pcap, PyFunc, NULL);
+#endif
+
   ret = pcap_dispatch(pp->pcap, cant, PythonCallBack, (u_char*)&ctx);
+
+#ifndef SINGLE_THREAD
   PyEval_RestoreThread(ctx.thread_state);
+#endif
 
   if(ret<0) {
     if (ret!=-2)
@@ -521,11 +535,13 @@ p_sendpacket(register pcapobject* pp, PyObject* args)
   unsigned char* str;
   unsigned int length;
 
+#ifndef FAST_NOCHECK
   if (Py_TYPE(pp) != &Pcaptype)
     {
       PyErr_SetString(PcapError, "Not a pcap object");
       return NULL;
     }
+#endif
 
 #if PY_MAJOR_VERSION >= 3
   /* accept bytes */

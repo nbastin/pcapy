@@ -30,7 +30,9 @@ else:
 
 
 # end of user configurable parameters
-macros = []
+macros = [("FAST_NOCHECK", None),
+          ("SINGLE_THREAD", None)]
+
 sources = ['pcapdumper.cc',
            'bpfobj.cc',
            'pcapobj.cc',
